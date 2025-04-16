@@ -1,0 +1,874 @@
+@import url("https://fonts.googleapis.com/css?family=Open+Sans|Ubuntu&display=swap");
+
+/* Colour and Font Variables */
+:root {
+--white: #ffffff;
+--midiumwhite: #fffafa;
+--darkwhite: rgba(245, 245, 245, 0.953);
+--black: #070707;
+--lightblack: #2e2e2e;
+--darkgrey: #515151;
+--lightgrey: #a3a3a3;
+--coral: #ff4242;
+--lightcoral: #ff5249e6;
+--yellow: #fab700;
+--darkyellow: #c89200;
+--red: #ee0909;
+--lightred: #ff2b24;
+--green: #0f860f;
+--lighgreen: #16bd16;
+--primaryfont: "Open Sans", sans-serif;
+--secondaryfont: "Ubuntu", sans-serif;
+}
+
+/*/////////////////////////////////////////
+//////////////// GLOBAL SETTINGS ///////////*/
+*,
+*::before,
+*::after{
+    margin: 0;
+    padding: 0;
+    box-sizing: inherit;
+}
+
+html {
+    box-sizing: border-box;
+    /*1rem = 10px, 10px/16px = 62.5%*/
+    font-size: 62.5%; 
+    overflow-x: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+
+    color: var(--lightblack);
+    background-color: var(--white);
+    font-family: var(--primaryfont);
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1.7;
+}
+
+main {
+    flex: 1 0 auto;
+    margin-top: 5.7rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// HELPERS - UTILITIES ///////////*/
+.uppercase {
+    text-transform: uppercase;
+}
+
+.margin-top-large {
+    margin-top: 5rem;
+}
+
+.margin-top-med {
+    margin-top: 3rem;
+}
+
+.margin-top-small {
+    margin-top: 1rem;
+}
+
+.margin-bottom-small {
+    margin-bottom: 1rem;
+}
+
+.margin-bottom-large {
+    margin-bottom: 2rem; 
+}
+
+.text-red {
+    color: var(--red);
+}
+
+.text-black {
+    color: var(--lightblack);
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.text-shadow-small {
+    text-shadow: 1px 1px 1px var(--black);   
+}
+
+.small-text-delete {
+    font-size: 1.1rem;
+}
+
+/* override Materialize label color and dropdown colour */
+.input-field label {
+    color: var(--black);
+}
+
+.dropdown-content li>a, .dropdown-content li>span {
+    color:  var(--black);
+    font-size: 1.1rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// MESSAGES ///////////*/
+.flashes {
+    text-align: center;
+    color: var(--lightcoral);
+    font-size: 1rem;
+    margin-top: 1rem;
+}
+
+.toast-message {
+    margin-left: .1rem;
+    font-size: inherit;
+}
+
+/*/////////////////////////////////////////
+//////////////// HEADINGS ///////////*/
+.primary-heading {
+    font-size: 3.1rem;
+    letter-spacing: .8rem; 
+    font-family: var(--secondaryfont);
+}
+
+.secondary-heading {
+    font-size: 2.4rem;
+    letter-spacing: 0.2rem; 
+    color: var(--coral);
+    font-weight: 600;
+}
+
+.tertiary-heading {
+    font-size: 1.7rem;
+    color: var(--coral);
+}
+
+.sub-heading { 
+    font-size: 1.9rem;
+    font-weight: 500;
+}
+
+.heading-black {
+    color: var(--lightblack);
+    margin: 2rem;
+    padding-bottom: 1rem;
+    text-shadow: 1px 1px 1px var(--lightgrey);
+}
+
+/*/////////////////////////////////////////
+//////////////// NAVBAR///////////*/
+/* fixed on the top; slide out menu on mobile*/
+nav {
+    position: fixed;
+    top: 0;
+    z-index: 100;
+    background-color: var(--darkwhite);
+    font-family: var(--primaryfont);
+}
+
+nav .brand-logo{
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+nav img {
+    height: 5.5rem;
+}
+
+nav ul a {
+    color: var(--lightblack);
+    padding: 0 2rem;
+    font-family: var(--secondaryfont);
+    margin-right: 5px;
+    font-weight: 400;
+}
+
+.navbar-icon {
+    margin-right: 0.8rem;
+    font-size: 1.5rem;
+    color: var(--lightblack);
+}
+
+.brand-logo {
+    color: var(--darkgrey);
+}
+
+.small-nav-icon {
+    font-size: 1rem;
+}
+
+.mobile-navbar-heading {
+    font-size: 2.6rem;
+    text-shadow: 1px 1px 6px var(--darkwhite);
+    color: var(--coral);
+}
+
+
+/*/////////////////////////////////////////
+//////////////// HOME PAGE ///////////*/
+.home-container {
+    margin: 0 auto;
+    width: 100%;
+    height: 60vh;
+    display:flex;
+    margin-top: 2rem;
+}
+
+/*Radial gradient on the image is used for making the text more readable and outstanding*/
+.hero-image {
+    background-image: radial-gradient(rgba(249, 238, 238, 0.91),
+                     rgba(152, 142, 142, 0.04)),
+                      url(../img/bg-home.jpg);
+    background-repeat: no-repeat;
+    background-size: cover;
+    position: relative;
+    border-radius: 1.5rem;
+    width: 100%;
+}
+
+.text-block-home {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--lightblack);
+    width: inherit;
+    padding: 0 .5rem;
+    
+}
+
+.home-paragpaph {
+    font-size: 1.4rem;
+    margin-bottom: 4rem;
+}
+
+.container-subheading {
+    width: 85%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 2rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// RECIPE CARD ///////////*/
+.card-recipe,
+.card-image,
+.recipe-image,
+.card .card-image img  {
+    border-radius: 2.5rem;
+}
+
+.card {
+    transition: transform .2s;
+}
+
+.card:hover {
+    transform: translateY(-.5rem) scale(1.01);
+}
+
+.card .card-image img {
+    width: 100%;
+    height: 45vh;
+    display: block;
+    object-fit: cover;
+}
+
+.text-block {
+    position: absolute;
+    top: 1.5rem;
+    right: 1rem;
+    background-color: var(--yellow);
+    font-family:var(--secondaryfont);
+    font-size: 1.2rem;
+    padding: 0 5px;
+    opacity: 0.9;
+    border-radius: .4rem;
+}
+
+.card-bottom-info {
+    font-size: 1.2rem;
+    margin-top: .4rem;
+    margin-bottom: 0;
+}
+
+.icon-recipe-card {
+    color: var(--yellow);   
+    font-size: 1.3rem;
+    padding: 2px;
+}
+
+.card .card-content{
+    padding-top: 0;
+    margin-top: -1rem;
+}
+
+.card .card-title {
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--black);
+}
+
+/*/////////////////////////////////////////
+/////////////ALL RECIPES PAGE ///////////*/
+.container-recipes{
+    width: 95%;
+    margin: 0 auto;
+}
+
+.pagination li {
+    height: auto !important;
+}
+
+
+/*/////////////////////////////////////////
+//////////////// SEARCH ///////////*/
+.search-container {
+    width: 90%;
+    margin: 2rem auto;
+}
+
+.search{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Overriding the Materialize default styling:
+input[type=text]:not(.browser-default), */
+.search-input {
+    font-family: inherit !important;
+    font-size: 1.3rem !important;
+    color: inherit !important;
+    background-color: #f7f7f7 !important;
+    border: none !important;
+    padding: .7rem 2rem !important;
+    border-radius: 10rem !important;
+    width: 85% !important;
+    transition: all .2s !important;
+    margin-right: -3.25rem !important;
+
+}
+
+/* Overriding the Materialize default styling:
+input[type=text]:not(.browser-default):focus:not([readonly]), */
+.search-input:focus{
+    outline: none !important;
+    width: 87% !important;
+    background-color: #f7f7f7 !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+}
+
+.search-input::-webkit-input-placeholder{
+    font-weight: 100 !important;
+    color: var(--lightgrey) !important;
+}
+
+.search-button {
+    border: none;
+    background-color: #f7f7f7;
+    cursor: pointer;
+}
+
+.search-button:focus{
+    outline: none; 
+    background-color: #f7f7f7 !important;
+}
+
+.search-button:active{
+    transform: translateY(2px); 
+}
+
+.search-icon {
+    height: 2rem;
+    width: 2rem;
+}
+
+.search-img-container {
+    position: relative;
+}
+
+.img-search {
+    width: 100%;
+    object-fit: cover;
+}
+
+.search-img-title {
+    background-color: rgba(94, 94, 94, 0.411);
+    color: var(--white);
+    border-radius: .5rem;
+    font-size: 3.3rem;
+    padding: 1rem;
+    position: absolute;
+    bottom: .5rem;
+    left: 1.5rem;
+}
+
+.search-results {
+    padding: .5rem;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+}
+
+/*/////////////////////////////////////////
+//////////////// MY RECIPIES PAGE ///////////*/
+.paragraph-count {
+    font-family: var(--secondaryfont);
+}
+
+/*/////////////////////////////////////////
+//////////////// RECIPE DETAILS PAGE ///////////*/
+.divider-container {
+    display: flex;
+    justify-content: center;
+    margin: 3.5rem auto;
+}
+
+.divider-yellow {
+    background-color: var(--darkyellow);
+    margin-top: -2rem;
+    margin-bottom: 2rem;
+    width: 15rem;
+    height: 2px;
+    border-radius: 5px;
+    border: 1px solid var(--darkyellow);
+}
+
+.recipe-lead-text {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 1.3rem;
+    color: var(--black);
+    padding-right: .3rem;
+}
+
+.paragraph-recipe {
+    margin: 0;
+}
+
+.recipe-description-paragraph {
+    font-size: 1.5rem;
+    padding: 1rem;
+}
+
+.recipe_icon {
+    font-size: 2.3rem;
+    color: var(--darkyellow);
+    text-shadow: 2px 2px 2px var(--darkgrey);
+}
+
+.list-items {
+    padding: 1rem;
+}
+
+.ingredients-list {
+    display: flex;
+    align-items: center;
+}
+
+.ingredient-icon {
+    font-size: 1rem;
+    margin-right: .8rem;
+    color: var(--coral);
+}
+
+.image-and-buttons-container{
+    display: flex;
+    flex-direction: column;
+}
+
+.image-container {
+    margin: 0 auto;
+}
+
+.recipe-image {
+    min-height: 30vh;
+    object-fit: cover;
+    display: block;
+}
+
+.buttons-container{
+    display: flex;
+    justify-content: space-evenly;
+    margin-bottom: 1rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// LOGIN - REGISTER PAGES ///////////*/
+.log-reg-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding-bottom: 5rem;
+    padding-top: 4rem;
+}
+
+.login-reg-section {
+    width: 30rem;
+}
+
+.logo-login-register {
+    width: 10rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// ADD/EDIT PAGE ///////////*/
+.container-addrecipe {
+    padding: 3px;
+    border-radius: 2rem;
+    margin-bottom: 2.2rem;
+    width: 99%;
+}
+
+.add-edit-form {
+    padding: 2px;
+}
+
+.asterisk {
+    color: var(--red);
+    font-size: .7rem;
+}
+
+/*///////////////////////////////////////////
+///////////ACCOUNT SETTINGS PAGE/////////////*/
+.user-avatar {
+    width: 20rem;
+    height: 20rem;
+    border-radius: 45%;
+}
+
+/*////////////////////////////////
+///////////BUTTONS /////////////*/
+.btn-main,
+.btn-main:link,
+.btn-main:visited{
+    border-radius: 10rem;
+    font-family: var(--secondaryfont);
+    padding: .3rem 1.4rem;
+    height: auto;
+}
+
+.btn-coral {
+    background-color: var(--coral);
+    color: var(--white);
+}
+
+.btn-coral:hover,
+.btn-coral:active,
+.btn-coral:focus {
+    background-color: var(--lightcoral);
+}
+
+.btn-form {
+    margin-top: 0;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.btn-secondary {
+    color: var(--black);
+    background-color: var(--darkwhite);
+}
+
+.btn-secondary:hover,
+.btn-secondary:focus,
+.btn-secondary:active {
+    background-color: var(--midiumwhite);
+}
+
+.btn-red {
+    background-color: var(--red);
+    margin: 5px;
+}
+
+.btn-red:hover,
+.btn-red:active,
+.btn-red:focus {
+    background-color: var(--lightred);
+}
+
+.btn-green {
+    background-color: var(--green);
+    margin: 5px;
+}
+
+.btn-green:hover,
+.btn-green:active,
+.btn-green:focus {
+    background-color: var(--lighgreen);
+}
+
+.btn-coral-2 {
+    background-color: var(--coral);
+    text-shadow: 0 1px 3px var(--lightblack);
+}
+
+.btn-coral-2:hover,
+.btn-coral-2:active,
+.btn-coral-2:focus {
+    background-color: var(--lightcoral);
+}
+
+.btn-golden {
+    background-color: var(--darkyellow);
+    margin: 5px;
+}
+
+.btn-golden:hover,
+.btn-golden:active,
+.btn-golden:focus {
+    background-color: var(--yellow);
+}
+
+.btn-change {
+    font-size: 1rem;
+}
+
+/*/////////////////////////////////////////
+//////////////// FOOTER ///////////*/
+.footer-container {
+    background-color: var(--darkwhite);
+    padding-bottom: 0.5rem;
+    color: var(--lightblack);
+    -webkit-box-shadow: 0px -5px 10px -6px var(--lightblack);
+    -moz-box-shadow: 0px -5px 10px -6px var(--lightblack);
+    box-shadow: 0px -5px 10px -6px var(--lightblack);
+}
+
+/*Smooth transition on hover makes icons larger*/
+.media-icons {
+    font-size: 2rem;
+    color: var(--black);
+    margin-bottom: .3rem;
+    padding: 3px;
+    font-weight: 300;
+    text-shadow: 2px 2px 2px var(--lightgrey);
+    -webkit-transition-duration: 0.5s;
+    -moz-transition-duration: 0.5s;
+    -o-transition-duration: 0.5s;
+    transition-timing-function: ease-in-out;
+}
+
+.media-icons:hover {
+    -webkit-transform: scale(1.3);
+    -moz-transform: scale(1.3);
+    -o-transform: scale(1.3);
+}
+
+.disclamer-text {
+    font-size: 1rem;
+}
+
+.author-link:link,
+.author-link:visited {
+    color: var(--lightblack);
+    transition: all .2s;
+}
+
+.author-link:hover {
+    color: var(--yellow);
+    text-decoration: none;
+}
+
+
+/*/////////////////////////////////////////
+//////////////// 404 and 500 ERROR PAGES ///////////*/
+.error-heading {
+    font-weight: 500;
+    letter-spacing: 0.3rem; 
+    font-family: var(--secondaryfont);
+    text-shadow: 4px 4px 4px var(--lightgrey);
+    color: var(--coral);
+}
+
+.error-sub-heading {
+    font-size: 2rem;
+}
+
+.error-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 90vh;
+    width: 100%;
+    text-align: center;
+}
+
+/*/////////////////////////////////////////
+//////////////// MEDIA QUERIES ///////////*/
+/* 
+Media Queries are declared in em:
+37.5em = 600px
+56.25em = 900px
+75em = 1200px
+112.5em = 1800px
+*/ 
+
+/* Tablet portrait devices from 600px */ 
+@media only screen and (min-width: 37.5em) {
+    html {
+        font-size: 70%;
+    }  
+
+    .home-container {
+        width: 90%;
+    }
+
+    .btn-main,
+    .btn-main:link,
+    .btn-main:visited{
+        padding: .5rem 1.7rem;
+    }
+
+    .card .card-image img {
+        height: 40vh;
+    }
+
+    .container-recipes{
+        width: 90%;
+    }
+
+    .add-edit-form {
+        padding: 2rem;
+    }
+
+    .img-search {
+        height: 60vh;
+    }
+    
+}
+
+/* Tablet landscape devices from 900px */ 
+@media only screen and (min-width: 56.25em) {
+    main {
+        margin-top: 5.1rem;
+    }
+
+    nav img {
+        display: inline-block;
+        padding: .6rem;
+        height: 5.5rem;
+    }
+
+    #btn-home {
+        letter-spacing: .2rem;
+    }
+
+    .container-recipes {
+        width: 95%;
+    }
+
+    .card .card-title {
+        font-size: 1.3rem;
+    }
+
+    .icon-recipe-card {
+        font-size: 1.1rem;
+    }
+
+    .card-bottom-info {
+        font-size: .9rem;
+    }
+
+    .recipe-image {
+        padding: .7rem;
+    }
+
+    .search-input {
+        width: 50% !important;
+    } 
+
+    .search-input:focus {
+        width: 53% !important;
+    }
+
+}
+
+/* Desktop from 1200px */ 
+@media only screen and (min-width: 75em) {
+    /* 8px/16px = 50% */
+    html {font-size: 80%;}  
+    
+    main {
+        margin-top: 4.8rem;
+    }
+
+    .home-container {
+        width: 85%;
+        padding: 0 2rem;
+    }
+
+    .primary-heading {
+        font-size: 3.5rem;
+        letter-spacing: 1rem; 
+
+    }
+
+    .sub-heading {
+        font-size: 2rem;
+        text-align: left;
+    }
+
+    .container-recipes{
+        width: 90%;
+    }
+
+    .login-reg-section {
+        width: 35rem;
+    }
+
+}
+
+/* Big desktop from 1800px */ 
+@media only screen and (min-width: 112.5em) {
+    html {font-size: 85%;}  
+
+    main {
+        margin-top: 4.4rem;
+    }
+
+    .card .card-title {
+        font-size: 1.4rem;
+    }
+
+    .icon-recipe-card {
+        font-size: 1.3rem;
+    }
+
+    .card-bottom-info {
+        font-size: 1rem;
+    }
+
+    .container-recipes{
+        width: 85%;
+    }
+
+    .card .card-image img {
+        height: 35vh;
+    }
+}
+
+
+/*  iPad Pro  and iPad landscape size Media queries */
+@media only screen and (min-width: 992px) and (max-width: 1025px)
+         and (-webkit-min-device-pixel-ratio: 1.5) {
+            .card .card-image img {
+                height: 25vh;
+            }
+
+            .container-recipes{
+                width: 98%;
+            }
+
+            .login-reg-section {
+                width: 40rem;
+            }
+       }

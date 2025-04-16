@@ -1,0 +1,44 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container margin-top-large">
+  <h1 class="secondary-heading uppercase center-align">Manage Users</h1>
+
+  {% include "partials/toast_messages.html" %}
+
+  <table class="striped centered responsive-table">
+    <thead>
+      <tr>
+        <th>Username (Email)</th>
+        <th>Role</th>
+        <th>Password Set?</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in users %}
+      <tr>
+        <td>{{ user.username }}</td>
+        <td>{{ user.role }}</td>
+        <td>{{ user.password_set }}</td>
+        <td>
+          {% if user.role != 'admin' %} {# Ngăn xóa admin khác nếu muốn #}
+          <a
+            href="{{ url_for('admin_delete_user', user_id=user._id) }}"
+            onclick="return confirm('Bạn có chắc chắn muốn xóa người dùng {{ user.username }}? Hành động này không thể hoàn tác!');"
+            class="btn-small btn-red waves-effect waves-light tooltipped"
+            data-position="top"
+            data-tooltip="Delete User"
+          >
+            <i class="fas fa-trash-alt"></i>
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="4">No users found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

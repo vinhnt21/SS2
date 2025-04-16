@@ -1,0 +1,36 @@
+{% extends 'base.html' %} {% block content %}
+
+{% include "partials/toast_messages.html" %} 
+
+<!--Main section, hero image and button-->
+<div class="home-container">
+  <div class="hero-image">
+      <div class="text-block-home center-align">
+        <h1 class="uppercase primary-heading">My CookBook</h1>
+        <p class="home-paragpaph">
+          Simple way to view, create and store
+          your recipes
+        </p>
+        <a href="{{ url_for('all_recipes')}}"
+          class="waves-effect waves-light btn btn-coral uppercase z-depth-3 btn-main"
+          id="btn-home">
+          Discover our recipes
+        </a>
+      </div>
+  </div>
+</div>
+
+<div class="container-subheading">
+  <h2 class="sub-heading center-align"> Featured recipes </h2>
+  <div class="divider"></div>
+</div>
+
+<!--Display 4 random recipes from the database-->
+<div class="container-recipes">
+  <div class="row">
+    {% for recipe in featured_recipes %} 
+        {% include "partials/recipecards.html" %} 
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
