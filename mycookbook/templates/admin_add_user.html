@@ -1,0 +1,93 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container margin-top-large">
+  <h1 class="secondary-heading uppercase center-align">Admin - Add New User</h1>
+
+  {% include "partials/toast_messages.html" %} {# Include flash messages partial
+  #}
+
+  <div class="row">
+    <form
+      method="POST"
+      action="{{ url_for('admin_add_user') }}"
+      class="col s12 m8 offset-m2 l6 offset-l3 card-panel"
+    >
+      {{ form.hidden_tag() }}
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">person</i>
+          {{ form.username.label }} {{ form.username(required=True) }} {% if
+          form.username.errors %} {% for error in form.username.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">email</i>
+          {{ form.email.label }} {{ form.email(type="email", required=True) }}
+          {% if form.email.errors %} {% for error in form.email.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">lock</i>
+          {{ form.password.label }} {{ form.password(type="password",
+          required=True) }} {% if form.password.errors %} {% for error in
+          form.password.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">check</i>
+          {{ form.confirm_password.label }} {{
+          form.confirm_password(type="password", required=True) }} {% if
+          form.confirm_password.errors %} {% for error in
+          form.confirm_password.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">supervisor_account</i>
+          {{ form.role.label }} {{ form.role(class="browser-default") }} {# Use
+          browser-default for better styling control or initialize with JS #} {%
+          if form.role.errors %} {% for error in form.role.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row center-align margin-bottom-large">
+        <div class="col s6">
+          <a
+            href="{{ url_for('admin_users') }}"
+            class="btn waves-effect waves-light btn-secondary btn-form z-depth-2"
+            >Cancel</a
+          >
+        </div>
+        <div class="col s6">
+          {{ form.submit(class="btn waves-effect waves-light btn-coral btn-form
+          z-depth-3") }}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{# Initialize Materialize Select if not using browser-default #} {#
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var elems = document.querySelectorAll("select");
+    var instances = M.FormSelect.init(elems, {});
+  });
+</script>
+#} {% endblock %}

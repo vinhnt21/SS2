@@ -1,74 +1,121 @@
 {% extends 'base.html' %} {% block content %}
 <div class="log-reg-container">
-    <section class="login-reg-section center-align margin-top-large">
-        <a href="{{ url_for('home') }}">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" class="logo-login-register hide-on-med-and-down"
-                alt="My CookBook Logo" />
-        </a>
-        <h1 class="secondary-heading heading-black uppercase">Create account</h1>
+  <section class="login-reg-section center-align margin-top-large">
+    <a href="{{ url_for('home') }}">
+      <img
+        src="{{ url_for('static', filename='img/logo.png') }}"
+        class="logo-login-register hide-on-med-and-down"
+        alt="My CookBook Logo"
+      />
+    </a>
+    <h1 class="secondary-heading heading-black uppercase">Create account</h1>
+    <div class="row">
+      <form method="POST" action="" class="col s12">
+        {{ form.hidden_tag() }}
         <div class="row">
-            <form method="POST" action="" class="col s12">
-                {{ form.hidden_tag() }}
-                <!--Username-->
-                <div class="row">
-                    <div class="input-field col s12">
-                        <i class="material-icons prefix">person</i>
-                        {{ form.username(placeholder="Enter username", id="username") }}
-                        <label for="username">Username <i class="fas fa-question-circle tooltipped" data-position="top"
-                                data-tooltip="3-15 characters, case sensitive"></i></label>
-                        {% for error in form.username.errors %}
-                        <small class="text-red">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-                </div>
-                <!--Password-->
-                <div class="row">
-                    <div class="input-field col s12">
-                        <i class="material-icons prefix">lock</i>
-                        {{ form.password (placeholder="Enter password", id="password") }}
-                        <label for="password">Password <i class="fas fa-question-circle tooltipped" data-position="top"
-                                data-tooltip="3-15 characters, case sensitive"></i></label>
-                        {% for error in form.password.errors %}
-                        <small class="text-red">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-                </div>
-                <!--Confirm Password-->
-                <div class="row">
-                    <div class="input-field col s12">
-                        <i class="material-icons prefix">lock</i>
-                        {{ form.confirm_password.label }}
-                        {{ form.confirm_password(placeholder="Confirm password") }}
-                        {% for error in form.confirm_password.errors %}
-                        <small class="text-red">{{ error }}</small>
-                        {% endfor %}
-                    </div>
-                </div>
-                <!--Error messages-->
-                <div class="row center-align">
-                    {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                    {% for message in messages %}
-                    <small class="text-red">
-                        {{ message }}
-                    </small>
-                    {% endfor %} {% endif %} {% endwith %}
-                </div>
-                <!--Login button-->
-                <div class="row">
-                    <div class="col s12 center-align">
-                        {{ form.submit(class="btn btn-form btn-main btn-coral z-depth-3 uppercase") }}
-                    </div>
-                </div>
-                <!--Link to register page-->
-                <div class="row center-align">
-                    <div class="col s12">
-                        <small>Already a user?
-                            <a href="{{ url_for('login') }}">Login here!</a></small>
-                    </div>
-                </div>
-            </form>
+          <div class="input-field col s12">
+            <i class="material-icons prefix">person</i>
+            {{ form.username(placeholder="Enter username", id="username",
+            required=True) }}
+            <label for="username"
+              >Username
+              <i
+                class="fas fa-question-circle tooltipped"
+                data-position="top"
+                data-tooltip="3-25 characters, case sensitive"
+              ></i
+            ></label>
+            {% if form.username.errors %} {% for error in form.username.errors
+            %}
+            <small class="text-red helper-text">{{ error }}</small>
+            {% endfor %} {% endif %} {# Flash message specific to username
+            conflict #} {% with messages =
+            get_flashed_messages(category_filter=["danger"]) %} {% if messages
+            %} {% for message in messages %} {% if 'username is already taken'
+            in message %}
+            <small class="text-red helper-text">{{ message }}</small>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+          </div>
         </div>
-    </section>
+        <div class="row">
+          <div class="input-field col s12">
+            <i class="material-icons prefix">email</i>
+            {{ form.email(placeholder="Enter email address", id="email",
+            type="email", required=True) }}
+            <label for="email">Email</label>
+            {% if form.email.errors %} {% for error in form.email.errors %}
+            <small class="text-red helper-text">{{ error }}</small>
+            {% endfor %} {% endif %} {# Flash message specific to email conflict
+            #} {% with messages =
+            get_flashed_messages(category_filter=["danger"]) %} {% if messages
+            %} {% for message in messages %} {% if 'email address is already
+            associated' in message %}
+            <small class="text-red helper-text">{{ message }}</small>
+            {% endif %} {% endfor %} {% endif %} {% endwith %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="input-field col s12">
+            <i class="material-icons prefix">lock</i>
+            {{ form.password (placeholder="Enter password", id="password",
+            type="password", required=True) }}
+            <label for="password"
+              >Password
+              <i
+                class="fas fa-question-circle tooltipped"
+                data-position="top"
+                data-tooltip="6-25 characters, case sensitive"
+              ></i
+            ></label>
+            {% if form.password.errors %} {% for error in form.password.errors
+            %}
+            <small class="text-red helper-text">{{ error }}</small>
+            {% endfor %} {% endif %}
+          </div>
+        </div>
+        <div class="row">
+          <div class="input-field col s12">
+            <i class="material-icons prefix">check</i> {# Changed icon #} {# {{
+            form.confirm_password.label }} #} {# Label might be redundant #} {{
+            form.confirm_password(placeholder="Confirm password",
+            type="password", required=True) }} {% if
+            form.confirm_password.errors %} {% for error in
+            form.confirm_password.errors %}
+            <small class="text-red helper-text">{{ error }}</small>
+            {% endfor %} {% endif %}
+          </div>
+        </div>
+        <div class="row center-align">
+          {% with messages = get_flashed_messages(with_categories=true) %} {% if
+          messages %} {% for category, message in messages %} {% if category ==
+          'success' %}
+          <small class="text-green">{{ message }}</small>
+          {% elif category == 'danger' and 'username is already taken' not in
+          message and 'email address is already associated' not in message %}
+          <small class="text-red">{{ message }}</small> {# General errors #} {%
+          elif category != 'danger' %}
+          <small
+            class="{{ 'text-yellow' if category == 'warning' else ('text-blue' if category == 'info' else 'text-grey') }}"
+            >{{ message }}</small
+          >
+          {% endif %} {% endfor %} {% endif %} {% endwith %}
+        </div>
+        <div class="row">
+          <div class="col s12 center-align">
+            {{ form.submit(class="btn btn-form btn-main btn-coral z-depth-3
+            uppercase") }}
+          </div>
+        </div>
+        <div class="row center-align">
+          <div class="col s12">
+            <small
+              >Already a user?
+              <a href="{{ url_for('login') }}">Login here!</a></small
+            >
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
 </div>
 {% endblock %}

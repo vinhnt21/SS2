@@ -23,8 +23,6 @@ oauth.register(
     access_token_params=None,
     authorize_url='https://accounts.google.com/o/oauth2/auth',
     authorize_params=None,
-    # api_base_url='https://www.googleapis.com/oauth2/v1/', # <-- Vẫn giữ đã xóa hoặc thêm lại nếu cần
-    # ---> Thêm lại dòng này <---
     userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
     client_kwargs={'scope': 'openid email profile'},
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',

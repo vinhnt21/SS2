@@ -1,0 +1,97 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container margin-top-large">
+  <h1 class="secondary-heading uppercase center-align">
+    Admin - Edit User: {{ user.username }}
+  </h1>
+
+  {% include "partials/toast_messages.html" %}
+
+  <div class="row">
+    <form
+      method="POST"
+      action="{{ url_for('admin_edit_user', user_id=user._id) }}"
+      class="col s12 m8 offset-m2 l6 offset-l3 card-panel"
+    >
+      {{ form.hidden_tag() }}
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">person</i>
+          {{ form.username.label(class="active") }} {# Add active class as field
+          is pre-populated #} {{ form.username(required=True) }} {% if
+          form.username.errors %} {% for error in form.username.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">email</i>
+          {{ form.email.label(class="active") }} {{ form.email(type="email",
+          required=True) }} {% if form.email.errors %} {% for error in
+          form.email.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="input-field col s12">
+          <i class="material-icons prefix">supervisor_account</i>
+          {{ form.role.label }} {# Pre-select the role. Value passed from
+          form(obj=user) handles this. #} {{ form.role(class="browser-default")
+          }} {# Use browser-default or JS init #} {% if form.role.errors %} {%
+          for error in form.role.errors %}
+          <small class="text-red helper-text">{{ error }}</small>
+          {% endfor %} {% endif %}
+        </div>
+      </div>
+
+      {#
+      <div class="row">
+        <div class="col s12">
+          <p><strong>Password Management:</strong></p>
+          <p>
+            <small
+              >To reset a user's password, use the dedicated "Forgot Password"
+              feature (if implemented) or provide a secure temporary password
+              mechanism.</small
+            >
+          </p>
+          {# Example: Add a button to trigger a password reset email (requires
+          email setup) #} {#
+          <a
+            href="{{ url_for('admin_reset_password_request', user_id=user._id) }}"
+            class="btn waves-effect waves-light orange"
+            >Send Password Reset Link</a
+          >
+          #}
+        </div>
+      </div>
+      #}
+
+      <div class="row center-align margin-bottom-large">
+        <div class="col s6">
+          <a
+            href="{{ url_for('admin_users') }}"
+            class="btn waves-effect waves-light btn-secondary btn-form z-depth-2"
+            >Cancel</a
+          >
+        </div>
+        <div class="col s6">
+          {{ form.submit(class="btn waves-effect waves-light btn-coral btn-form
+          z-depth-3") }}
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{# Initialize Materialize Select if not using browser-default #} {#
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var elems = document.querySelectorAll("select");
+    var instances = M.FormSelect.init(elems, {}); // Add options if needed
+  });
+</script>
+#} {% endblock %}

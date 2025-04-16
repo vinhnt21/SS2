@@ -3,7 +3,7 @@ from authlib.integrations.flask_client import OAuth
 from mycookbook import app, mongo, oauth
 from werkzeug.security import generate_password_hash, check_password_hash
 from mycookbook.forms import RegisterForm, LoginForm, \
-    ChangeUsernameForm, ChangePasswordForm, Add_RecipeForm
+    ChangeUsernameForm, ChangePasswordForm, Add_RecipeForm, AdminAddUserForm, AdminEditUserForm
 from flask_pymongo import pymongo
 from bson.objectid import ObjectId
 import math
@@ -23,8 +23,6 @@ def inject_user_role():
     is_admin = False
     password_needs_set = False
     if 'username' in session:
-        # Dùng g để lưu user object, tránh query nhiều lần trong một request
-        # Tham khảo: https://flask.palletsprojects.com/en/1.1.x/appcontext/#storing-data
         user = getattr(g, '_current_user', None)
         if user is None:
             user = users_coll.find_one({"username": session['username']})
@@ -34,7 +32,6 @@ def inject_user_role():
             is_admin = user.get('role') == 'admin'
             password_needs_set = not user.get('password_set', True) # True nếu chưa set
 
-    # Trả về dict để inject vào context
     return dict(current_user=user, is_admin=is_admin, password_needs_set=password_needs_set)
 
 '''
@@ -59,32 +56,165 @@ def admin_required(f):
 @app.route('/admin/users')
 @admin_required
 def admin_users():
-    all_users = list(users_coll.find())
-    return render_template('admin_users.html', users=all_users, title='Admin - Manage Users')
+    # Fetch all users except the current admin to prevent self-modification via list
+    # Though edit/delete routes have specific checks too
+    all_users = list(users_coll.find({'username': {'$ne': session.get('username')}}).sort('username', 1))
+    current_admin_user = users_coll.find_one({'username': session.get('username')})
+    return render_template('admin_users.html',
+                           users=all_users,
+                           current_admin_user=current_admin_user, # Pass current admin separately if needed
+                           title='Admin - Manage Users')
 
+# --- Admin Add User ---
+@app.route('/admin/add_user', methods=['GET', 'POST'])
+@admin_required
+def admin_add_user():
+    form = AdminAddUserForm()
+    if form.validate_on_submit():
+        users = users_coll
+        existing_username = users.find_one({'username': form.username.data})
+        existing_email = users.find_one({'email': form.email.data})
+
+        if existing_username:
+            flash(f"Username '{form.username.data}' is already taken.", 'danger')
+        elif existing_email:
+             flash(f"Email '{form.email.data}' is already associated with an account.", 'danger')
+        else:
+            # Hash the password
+            hashed_password = generate_password_hash(form.password.data)
+            # Create the new user document
+            new_user_data = {
+                "username": form.username.data,
+                "email": form.email.data,
+                "password": hashed_password,
+                "role": form.role.data,
+                "password_set": True, # Password is set by admin
+                "user_recipes": []
+                # "created_at": datetime.utcnow()
+            }
+            users.insert_one(new_user_data)
+            flash(f"User '{form.username.data}' added successfully.", 'success')
+            return redirect(url_for('admin_users'))
+
+    return render_template('admin_add_user.html', form=form, title='Admin - Add User')
+
+
+# --- Admin Edit User ---
+@app.route('/admin/edit_user/<user_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_user(user_id):
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        flash("Invalid User ID format.", "danger")
+        return redirect(url_for('admin_users'))
+
+    user_to_edit = users_coll.find_one({"_id": oid})
+
+    if not user_to_edit:
+        flash("User not found.", "error")
+        return redirect(url_for('admin_users'))
+
+    # Prevent admin from editing themselves via this route (extra precaution)
+    if user_to_edit['username'] == session.get('username'):
+         flash("Admins cannot edit their own profile via this page. Use regular account settings.", "warning")
+         return redirect(url_for('admin_users'))
+
+    form = AdminEditUserForm(obj=user_to_edit) # Pre-populate form
+
+    if form.validate_on_submit():
+        new_username = form.username.data
+        new_email = form.email.data
+        new_role = form.role.data
+
+        # Check for username conflict (if changed)
+        if new_username != user_to_edit['username']:
+            existing_username = users_coll.find_one({'username': new_username, '_id': {'$ne': oid}})
+            if existing_username:
+                flash(f"Username '{new_username}' is already taken.", 'danger')
+                # Re-render form with error
+                return render_template('admin_edit_user.html', form=form, user=user_to_edit, title='Admin - Edit User')
+
+        # Check for email conflict (if changed)
+        if new_email != user_to_edit.get('email'): # Use .get() for safety if email might be missing
+            existing_email = users_coll.find_one({'email': new_email, '_id': {'$ne': oid}})
+            if existing_email:
+                flash(f"Email '{new_email}' is already associated with another account.", 'danger')
+                 # Re-render form with error
+                return render_template('admin_edit_user.html', form=form, user=user_to_edit, title='Admin - Edit User')
+
+        # Prevent changing role *to* admin if you want to limit admin creation
+        # Or prevent changing role *of* admin if needed (though self-edit is already blocked)
+        # if new_role == 'admin' and user_to_edit['role'] != 'admin':
+        #    flash("Cannot elevate users to admin via this form.", "warning") # Example restriction
+        #    return redirect(url_for('admin_users'))
+
+        # Update user document
+        users_coll.update_one({"_id": oid}, {
+            "$set": {
+                "username": new_username,
+                "email": new_email,
+                "role": new_role
+                # Add other fields if the form included them (e.g., password reset flag)
+            }
+        })
+        flash(f"User '{new_username}' updated successfully.", 'success')
+        return redirect(url_for('admin_users'))
+
+    # On GET request or validation failure
+    return render_template('admin_edit_user.html', form=form, user=user_to_edit, title='Admin - Edit User')
+
+
+# --- Admin Delete User (Keep existing, ensure checks are robust) ---
 @app.route('/admin/delete_user/<user_id>')
 @admin_required
 def admin_delete_user(user_id):
-    user_to_delete = users_coll.find_one({"_id": ObjectId(user_id)})
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        flash("Invalid User ID format.", "danger")
+        return redirect(url_for('admin_users'))
+
+    user_to_delete = users_coll.find_one({"_id": oid})
+
     if not user_to_delete:
-         flash("Không tìm thấy người dùng!", "error")
-         return redirect(url_for('admin_users'))
-    # Không cho phép admin tự xóa mình
-    if user_to_delete['username'] == session['username']:
-         flash("Bạn không thể tự xóa tài khoản Admin của mình.", "warning")
+         flash("User not found!", "error")
          return redirect(url_for('admin_users'))
 
-    # Cân nhắc: Có nên xóa recipes của user này không? Hiện tại mã nguồn gốc có làm vậy khi user tự xóa.
-    # Nếu muốn xóa recipes:
-    # all_user_recipes = user_to_delete.get("user_recipes", [])
-    # if all_user_recipes:
-    #     recipes_coll.delete_many({"_id": {"$in": all_user_recipes}})
+    # Prevent admin from deleting themselves
+    if user_to_delete['username'] == session.get('username'):
+         flash("You cannot delete your own admin account.", "warning")
+         return redirect(url_for('admin_users'))
 
-    users_coll.delete_one({"_id": ObjectId(user_id)})
-    flash(f"Đã xóa người dùng {user_to_delete['username']}.", "success")
+    # Optional: Prevent deleting other admins
+    # if user_to_delete.get('role') == 'admin':
+    #     flash("Cannot delete other admin accounts.", "warning")
+    #     return redirect(url_for('admin_users'))
+
+    # Delete associated recipes (decision from original code/request)
+    # Consider consequences: Keep recipes but orphan them? Assign to admin?
+    all_user_recipes_ids = user_to_delete.get("user_recipes", [])
+    if all_user_recipes_ids:
+         try:
+             # Convert potential string IDs to ObjectIds if necessary
+             object_ids = [ObjectId(r_id) for r_id in all_user_recipes_ids]
+             delete_result = recipes_coll.delete_many({"_id": {"$in": object_ids}})
+             print(f"DEBUG: Deleted {delete_result.deleted_count} recipes for user {user_to_delete['username']}")
+         except Exception as e:
+              app.logger.error(f"Error deleting recipes for user {user_id}: {e}")
+              flash(f"Could not delete recipes associated with user {user_to_delete['username']}. Please check logs.", "warning")
+              # Decide whether to proceed with user deletion or stop
+
+    # Delete the user
+    users_coll.delete_one({"_id": oid})
+    flash(f"User '{user_to_delete['username']}' and their recipes have been deleted.", "success")
     return redirect(url_for('admin_users'))
 
 
+
+'''
+GOOGLE AUTHENTICATION
+'''
 '''
 GOOGLE AUTHENTICATION
 '''
@@ -92,7 +222,7 @@ GOOGLE AUTHENTICATION
 def google_login():
     """Chuyển hướng người dùng đến trang đăng nhập Google."""
     redirect_uri = url_for('google_callback', _external=True)
-    print(f"Redirect URI for Google: {redirect_uri}") # Để debug
+    print(f"DEBUG: Redirect URI for Google Auth: {redirect_uri}")
     return oauth.google.authorize_redirect(redirect_uri)
 
 @app.route('/google/callback')
@@ -101,57 +231,91 @@ def google_callback():
     try:
         # 1. Lấy access token
         token = oauth.google.authorize_access_token()
+        if not token:
+             flash("Google authentication failed: Could not authorize access token.", "danger")
+             return redirect(url_for('login'))
 
-        # 2. Dùng access token để lấy thông tin user từ UserInfo endpoint
-        #    ---> Sửa dòng này: Cung cấp URL đầy đủ <---
-        userinfo_url = 'https://openidconnect.googleapis.com/v1/userinfo'
-        print(f"Fetching user info from: {userinfo_url}") # Debug URL
-        resp = oauth.google.get(userinfo_url)
-        print(f"User info response status: {resp.status_code}") # Debug status code
-        # print(f"User info response text: {resp.text}") # Debug response text if needed
+        # 2. Dùng access token để lấy thông tin user
+        # --- Hoàn nguyên về cách lấy user info cũ ---
+        # Xác định URL UserInfo endpoint một cách rõ ràng
+        # Thông thường lấy từ cấu hình nhưng phiên bản cũ có thể cần khai báo trực tiếp
+        # Dựa trên cấu hình trong __init__.py của bạn [cite: uploaded:MyCookBook_v2/mycookbook/__init__.py]:
+        userinfo_endpoint = 'https://openidconnect.googleapis.com/v1/userinfo'
+        print(f"DEBUG: Attempting to fetch user info from: {userinfo_endpoint}")
 
-        resp.raise_for_status() # Kiểm tra lỗi HTTP (ví dụ: 401 Unauthorized)
+        # Thực hiện lệnh gọi GET với URL đầy đủ
+        resp = oauth.google.get(userinfo_endpoint)
+        print(f"DEBUG: User info response status: {resp.status_code}") # Debug status code
+
+        # Kiểm tra lỗi HTTP
+        resp.raise_for_status()
         user_info = resp.json() # Lấy dữ liệu JSON
 
         google_email = user_info.get('email')
+        google_name = user_info.get('name')
 
         if not google_email:
-             flash("Không thể lấy địa chỉ email từ Google.", "danger")
+             flash("Could not retrieve email address from Google.", "danger")
              return redirect(url_for('login'))
 
-        # 3. Kiểm tra xem email này đã tồn tại trong DB chưa
-        existing_user = users_coll.find_one({'username': google_email})
+        # 3. --- LOGIC MỚI: Kiểm tra xem email này đã tồn tại trong DB chưa ---
+        existing_user = users_coll.find_one({'email': google_email})
 
         if existing_user:
-            # Nếu đã tồn tại, đăng nhập cho user
-            session['username'] = existing_user['username']
-            g._current_user = existing_user # Cập nhật g object
-            flash(f"Chào mừng trở lại, {existing_user['username']}!", "success")
-            if not existing_user.get('password_set', True):
-                 flash("Bạn nên đặt mật khẩu cho tài khoản của mình.", "info")
-                 return redirect(url_for('account_settings', username=session['username']))
+            # User found by email - Log them in
+            session['username'] = existing_user['username'] # Log in với username hiện tại
+            g._current_user = existing_user
+            flash(f"Welcome back, {existing_user['username']}!", "success")
+            # Optional: Cập nhật last login time...
+
+            password_needs_set = not existing_user.get('password_set', True)
+            if password_needs_set:
+                flash("Please set a password for your account.", "info")
+                return redirect(url_for('change_password', username=session['username']))
             return redirect(url_for('home'))
         else:
-            # Nếu chưa tồn tại, tạo user mới
+            # --- User NOT found by email - Create NEW user ---
+            initial_username = google_email
+            username_conflict = users_coll.find_one({'username': initial_username})
+
+            if username_conflict:
+                 # Xử lý xung đột username (logic giữ nguyên từ phản hồi trước)
+                 if google_name:
+                     potential_username = google_name.replace(" ", "").lower()
+                     if not users_coll.find_one({'username': potential_username}):
+                         initial_username = potential_username
+                     else:
+                         initial_username = google_email.split('@')[0] + "_" + os.urandom(3).hex()
+                 else:
+                      initial_username = google_email.split('@')[0] + "_" + os.urandom(3).hex()
+
+                 if users_coll.find_one({'username': initial_username}):
+                      flash("Failed to create a unique username. Please try registering manually.", "danger")
+                      return redirect(url_for('register'))
+
+            # Tạo user mới
             new_user_data = {
-                "username": google_email,
-                "password": None,
+                "username": initial_username,
+                "email": google_email, # Lưu email
+                "password": None,      # Chưa có mật khẩu
                 "user_recipes": [],
                 "role": "user",
-                "password_set": False
+                "password_set": False # Cần đặt mật khẩu
+                # "created_at": datetime.utcnow()
             }
             result = users_coll.insert_one(new_user_data)
-            new_user = users_coll.find_one({"_id": result.inserted_id}) # Lấy lại user vừa tạo
+            new_user = users_coll.find_one({"_id": result.inserted_id})
 
-            session['username'] = google_email
-            g._current_user = new_user # Cập nhật g object
-            flash("Đăng nhập bằng Google thành công! Hãy đặt mật khẩu cho tài khoản của bạn.", "success")
-            return redirect(url_for('account_settings', username=session['username']))
+            session['username'] = new_user['username'] # Đăng nhập với username mới
+            g._current_user = new_user
+            flash(f"Google sign-in successful! Welcome, {new_user['username']}. Please set a password for your account.", "success")
+            return redirect(url_for('change_password', username=session['username'])) # Chuyển đến trang đặt mật khẩu
 
     except Exception as e:
-        print(f"Lỗi Google Callback: {e.__class__.__name__}: {e}")
-        traceback.print_exc() # In traceback để debug chi tiết hơn
-        flash("Đã xảy ra lỗi trong quá trình xác thực Google. Vui lòng thử lại.", "danger")
+        # Log lỗi để debug
+        app.logger.error(f"Google Callback Error: {e.__class__.__name__}: {e}")
+        traceback.print_exc() # In traceback chi tiết
+        flash("An error occurred during Google authentication. Please try logging in again.", "danger")
         return redirect(url_for('login'))
 
 '''
@@ -469,41 +633,51 @@ def register():
     '''
     CREATE.
     Creates a new account; it calls the RegisterForm class from forms.py.
-    Checks if the username is not already excist in database,
-    hashes the entered password and add a new user to session.
+    Checks if the username or email is not already existing in the database,
+    hashes the entered password and adds a new user to session.
+    Requires email field now.
     '''
-    # checks if user is not already logged in
     if 'username' in session:
-        flash('You are already registered!')
+        flash('You are already registered and logged in!', 'info')
         return redirect(url_for('home'))
 
-    form = RegisterForm()
-    if form.validate_on_submit():
-        # variable for users collection
-        users = users_coll
-        # checks if the username is unique
-        registered_user = users_coll.find_one({'username':
-                                               request.form['username']})
-        if registered_user:
-            flash("Sorry, this username is already taken!")
-            return redirect(url_for('register'))
-        else:
-            # hashes the entered password
-            hashed_password = generate_password_hash(request.form['password'])
-            new_user = {
-                "username": request.form['username'],
-                "password": hashed_password,
-                "user_recipes": [],
-                "role": "user",
-                "password_set": True
-            }
-            users.insert_one(new_user)
-            # add new user to the session
-            session["username"] = request.form['username']
-            flash('Your account has been successfully created.')
-            return redirect(url_for('home'))
-    return render_template('register.html', form=form,  title='Register')
+    # --- NOTE: RegisterForm needs an email field added ---
+    # --- Go back to forms.py and add it ---
+    form = RegisterForm() # Assuming RegisterForm now includes an email field
 
+    if form.validate_on_submit():
+        users = users_coll
+        existing_username = users.find_one({'username': form.username.data})
+        # --- Check for existing email ---
+        existing_email = users.find_one({'email': form.email.data}) # Assuming form has email.data
+
+        if existing_username:
+            flash("Sorry, this username is already taken!", 'danger')
+            return redirect(url_for('register'))
+        # --- Check email conflict ---
+        if existing_email:
+            flash("This email address is already associated with an account.", 'danger')
+            return redirect(url_for('register'))
+
+        # If username and email are unique, proceed
+        hashed_password = generate_password_hash(form.password.data)
+        new_user = {
+            "username": form.username.data,
+            "email": form.email.data, # Store email
+            "password": hashed_password,
+            "user_recipes": [],
+            "role": "user",
+            "password_set": True # Password is set during registration
+            # "created_at": datetime.utcnow()
+        }
+        users.insert_one(new_user)
+        # add new user to the session
+        session["username"] = form.username.data
+        g._current_user = new_user # Set g object
+        flash('Your account has been successfully created.', 'success')
+        return redirect(url_for('home'))
+
+    return render_template('register.html', form=form,  title='Register')
 
 # Logout
 @app.route("/logout")
@@ -540,79 +714,120 @@ def change_username(username):
     Allows user to change the current username.
     It calls the ChangeUsernameForm class from forms.py.
     Checks if the new username is unique and not exist in database,
-    then clear the session and redirect user to login page.
+    then updates the username, clears the session and redirects user to login page.
+    Email remains unchanged.
     '''
-    # prevents guest users from viewing the form
-    if 'username' not in session:
-        flash('You must be logged in to change username!')
+    if 'username' not in session or session['username'] != username:
+        flash('You must be logged in and can only change your own username!', 'warning')
+        return redirect(url_for('login'))
+
     users = users_coll
+    user = users.find_one({'username': session['username']})
+    if not user:
+        flash('User not found.', 'error')
+        session.pop("username", None)
+        return redirect(url_for('login'))
+
     form = ChangeUsernameForm()
     if form.validate_on_submit():
-        # checks if the new username is unique
-        registered_user = users.find_one({'username':
-                                         request.form['new_username']})
-        if registered_user:
-            flash('Sorry, username is already taken. Try another one')
-            return redirect(url_for('change_username',
-                                    username=session["username"]))
+        new_username = form.new_username.data
+        # Check if the new username is the same as the old one
+        if new_username == username:
+             flash('New username cannot be the same as the current username.', 'warning')
+             return redirect(url_for('change_username', username=username))
+
+        # Check if the new username is already taken by someone else
+        existing_user = users.find_one({'username': new_username})
+        if existing_user:
+            flash('Sorry, that username is already taken. Try another one.', 'danger')
+            return redirect(url_for('change_username', username=username))
         else:
+            # Update the username in the database
             users.update_one(
-                {"username": username},
-                {"$set": {"username": request.form["new_username"]}})
-        # clear the session and redirect to login page
-        flash("Your username was updated successfully.\
-                    Please, login with your new username")
-        session.pop("username",  None)
-        return redirect(url_for("login"))
+                {"_id": user['_id']},
+                {"$set": {"username": new_username}})
 
+            # Clear the session and redirect to login page forcing re-login
+            flash("Your username was updated successfully. Please log in with your new username.", 'success')
+            session.pop("username", None)
+            g.pop('_current_user', None) # Clear g object too
+            return redirect(url_for("login"))
+
+    # Pass current username for display
     return render_template('change_username.html',
-                           username=session["username"],
+                           username=username, # Pass the actual current username
                            form=form, title='Change Username')
-
 
 # Change password
 @app.route("/change_password/<username>", methods=['GET', 'POST'])
 def change_password(username):
     '''
     UPDATE.
-    Allows user to change the current password.
+    Allows user to change the current password or set it for the first time
+    if logged in via Google initially.
     It calls the ChangePasswordForm class from forms.py.
-    Checks if the current password is correct, validate new password.
-    Then if new password matchs confirm password field,
-    insert it to the database.
+    Checks if the current password is correct (if password was already set),
+    validates new password. Then if new password matches confirm password field,
+    insert it to the database and set password_set to True.
     '''
-    # prevents guest users from viewing the form
-    if 'username' not in session:
-        flash('You must be logged in to change password!')
-    users = users_coll
-    form = ChangePasswordForm()
-    username = users.find_one({'username': session['username']})['username']
-    old_password = request.form.get('old_password')
-    new_password = request.form.get('new_password')
-    confirm_password = request.form.get("confirm_new_password")
-    if form.validate_on_submit():
-        # checks if current password matches existing password in database
-        if check_password_hash(users.find_one({'username': username})
-                               ['password'], old_password):
-            # checks if new passwords match
-            if new_password == confirm_password:
-                # update the password and redirect to the settings page
-                users.update_one({'username': username},
-                                 {'$set': {'password': generate_password_hash
-                                           (request.form['new_password'])}})
-                flash("Success! Your password was updated.")
-                return redirect(url_for('account_settings', username=username))
-            else:
-                flash("New passwords do not match! Please try again")
-                return redirect(url_for("change_password",
-                                        username=session["username"]))
-        else:
-            flash('Incorrect original password! Please try again')
-            return redirect(url_for('change_password',
-                            username=session["username"]))
-    return render_template('change_password.html', username=username,
-                           form=form, title='Change Password')
+    # Prevents guest users from viewing the form
+    if 'username' not in session or session['username'] != username:
+        flash('You must be logged in and can only change your own password!', 'warning')
+        return redirect(url_for('login'))
 
+    users = mongo.db.users
+    user = users.find_one({'username': session['username']})
+
+    if not user:
+        flash('User not found.', 'error')
+        session.pop("username", None)
+        return redirect(url_for('login'))
+
+    # Check if the user needs to set the password for the first time
+    password_needs_set = not user.get('password_set', True)
+
+    form = ChangePasswordForm()
+
+    # Customize form based on whether the password needs to be set
+    if password_needs_set:
+        # If setting password for the first time, remove the old_password field's label/requirement visually
+        # (The validator is already Optional, but we adjust the template experience)
+        # We can pass a flag to the template or adjust the form field here if needed
+        # For simplicity, we rely on the logic below to bypass the check.
+        # No change needed to the form object itself here, logic handles the check.
+        pass # Placeholder for potential future form adjustments if needed
+    else:
+        # If password is set, old_password is required logically
+        # Ensure the Optional validator doesn't bypass our check below
+        pass
+
+    if form.validate_on_submit():
+        new_password = form.new_password.data
+        old_password = form.old_password.data # Get data even if optional
+
+        # If password was already set, verify the old password
+        if not password_needs_set:
+            if not old_password:
+                 flash('Current password is required.', 'danger')
+                 # Pass the flag to the template
+                 return render_template('change_password.html', username=username, form=form, title='Change Password', password_needs_set=password_needs_set)
+            if not user.get('password') or not check_password_hash(user['password'], old_password):
+                flash('Incorrect current password! Please try again', 'danger')
+                # Pass the flag to the template
+                return render_template('change_password.html', username=username, form=form, title='Change Password', password_needs_set=password_needs_set)
+
+        # If validation passes (including old password check if applicable), update the password
+        hashed_new_password = generate_password_hash(new_password)
+        users.update_one({'_id': user['_id']},
+                         {'$set': {
+                             'password': hashed_new_password,
+                             'password_set': True # Ensure this is set to True
+                         }})
+        flash("Success! Your password was updated.", 'success')
+        return redirect(url_for('account_settings', username=session['username']))
+
+    # Pass the flag to the template for conditional rendering
+    return render_template('change_password.html', username=username, form=form, title='Change Password', password_needs_set=password_needs_set)
 
 # Delete Account
 @app.route("/delete_account/<username>", methods=['GET', 'POST'])
