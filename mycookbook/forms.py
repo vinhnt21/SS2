@@ -64,8 +64,7 @@ class Add_RecipeForm(FlaskForm):
 
 # --- AdminAddUserForm ---
 class AdminAddUserForm(FlaskForm):
-    role = SelectField('Role', choices=[('user', 'User'), ('admin', 'Admin')],
-                       validators=[InputRequired(message="Please select a role.")])
+    
     username = StringField('Username',
                            validators=[DataRequired(), Length(min=3, max=25)])
     # --- Use StringField for Email ---
@@ -76,7 +75,8 @@ class AdminAddUserForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password',
                                      validators=[DataRequired(),
                                                  EqualTo('password', message="Passwords must match.")])
-   
+    role = SelectField('Role', choices=[('user', 'User'), ('admin', 'Admin')],
+                       validators=[InputRequired(message="Please select a role.")], default='user')
     submit = SubmitField('Add User')
 
 # --- AdminEditUserForm ---

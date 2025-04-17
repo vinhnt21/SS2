@@ -212,12 +212,322 @@ def admin_delete_user(user_id):
 
 
 
+
+# --- Admin List All Recipes ---
+@app.route('/admin/recipes')
+@admin_required
+def admin_recipes():
+    '''
+    ADMIN READ.
+    Displays all recipes from the database for admin management with pagination.
+    '''
+    limit_per_page = 8 # Hoặc số lượng bạn muốn
+    current_page = int(request.args.get('current_page', 1))
+    recipes_coll = mongo.db.recipes
+    users_coll = mongo.db.users # Cần để lấy tên tác giả
+
+    number_of_all_rec = recipes_coll.count_documents({})
+    pages = range(1, int(math.ceil(number_of_all_rec / limit_per_page)) + 1)
+
+    # Lấy công thức với thông tin tác giả
+    pipeline = [
+        {
+            '$sort': {'_id': pymongo.ASCENDING} # Hoặc sắp xếp theo tiêu chí khác
+        },
+        {
+            '$skip': (current_page - 1) * limit_per_page
+        },
+        {
+            '$limit': limit_per_page
+        },
+        {
+            '$lookup': {
+                'from': 'users',
+                'localField': 'author',
+                'foreignField': '_id',
+                'as': 'author_info'
+            }
+        },
+        {
+             # Giải nén mảng author_info (chỉ có 1 phần tử)
+            '$unwind': {
+                'path': '$author_info',
+                 # Giữ lại recipe ngay cả khi không tìm thấy user (an toàn hơn)
+                'preserveNullAndEmptyArrays': True
+            }
+        },
+        {
+            '$addFields': {
+                 # Thêm trường author_username, xử lý trường hợp user bị xóa
+                'author_username': '$author_info.username'
+            }
+        }
+    ]
+
+    recipes_list = list(recipes_coll.aggregate(pipeline))
+
+    return render_template("admin_recipes.html",
+                           recipes=recipes_list,
+                           title='Admin - Manage Recipes',
+                           current_page=current_page,
+                           pages=pages,
+                           number_of_all_rec=number_of_all_rec)
+
+
+# --- Admin Add Recipe (Show Form) ---
+@app.route('/admin/add_recipe', methods=['GET'])
+@admin_required
+def admin_add_recipe_form():
+    '''
+    ADMIN CREATE (Form).
+    Displays the form for admin to add a new recipe.
+    '''
+    form = Add_RecipeForm()
+    # Lấy dữ liệu cho dropdowns giống như route add_recipe của user
+    diet_types = mongo.db.diets.find()
+    meal_types = mongo.db.meals.find()
+    cuisine_types = mongo.db.cuisines.find()
+    return render_template("admin_add_recipe.html", # Template mới
+                           form=form,
+                           diet_types=diet_types,
+                           cuisine_types=cuisine_types,
+                           meal_types=meal_types,
+                           title='Admin - Add New Recipe')
+
+# --- Admin Insert Recipe (Handle Submission) ---
+@app.route("/admin/insert_recipe", methods=['POST'])
+@admin_required
+def admin_insert_recipe():
+    '''
+    ADMIN CREATE (Action).
+    Inserts the new recipe added by admin into the DB.
+    The author will be the logged-in admin.
+    '''
+    recipes_coll = mongo.db.recipes
+    users_coll = mongo.db.users
+    form = Add_RecipeForm() # Dùng để validate nếu cần, nhưng ở đây lấy trực tiếp từ request.form
+
+    if request.method == 'POST':
+        # Lấy thông tin admin đang đăng nhập
+        admin_user = users_coll.find_one({"username": session["username"]})
+        if not admin_user:
+            flash("Admin user not found.", "error")
+            return redirect(url_for('admin_recipes'))
+        admin_author_id = admin_user["_id"]
+
+        # Tách ingredients và directions
+        ingredients = request.form.get("ingredients", "").splitlines()
+        directions = request.form.get("recipe_directions", "").splitlines()
+
+        # Tạo document công thức mới
+        new_recipe_data = {
+            "recipe_name": request.form.get("recipe_name", "").strip(),
+            "description": request.form.get("recipe_description", ""),
+            "cuisine_type": request.form.get("cuisine_type"),
+            "meal_type": request.form.get("meal_type"),
+            "diet_type": request.form.get("diet_type"),
+            "cooking_time": request.form.get("cooking_time"),
+            "servings": request.form.get("servings"),
+            "ingredients": [ing for ing in ingredients if ing.strip()], # Loại bỏ dòng trống
+            "directions": [direc for direc in directions if direc.strip()], # Loại bỏ dòng trống
+            'author': admin_author_id, # Gán admin là tác giả
+            "image": request.form.get("image")
+        }
+
+        try:
+            insert_result = recipes_coll.insert_one(new_recipe_data)
+            # Cập nhật danh sách công thức của admin
+            users_coll.update_one(
+                {"_id": admin_author_id},
+                {"$push": {"user_recipes": insert_result.inserted_id}}
+            )
+            flash('Recipe added successfully by admin.', 'success')
+            # Chuyển hướng đến trang chi tiết công thức vừa tạo hoặc danh sách admin
+            return redirect(url_for("single_recipe_details", recipe_id=insert_result.inserted_id))
+            # Hoặc: return redirect(url_for('admin_recipes'))
+        except Exception as e:
+             flash(f"Error adding recipe: {e}", 'danger')
+             # Có thể render lại form với lỗi nếu cần
+             return redirect(url_for('admin_add_recipe_form'))
+
+    # Nếu không phải POST (dù route chỉ định POST, đề phòng)
+    return redirect(url_for('admin_add_recipe_form'))
+
+
+# --- Admin Edit Recipe (Show Form) ---
+@app.route("/admin/edit_recipe/<recipe_id>", methods=['GET'])
+@admin_required
+def admin_edit_recipe_form(recipe_id):
+    '''
+    ADMIN UPDATE (Form).
+    Displays the form for admin to edit any recipe, pre-populated.
+    '''
+    try:
+        oid = ObjectId(recipe_id)
+    except Exception:
+        flash("Invalid Recipe ID format.", "danger")
+        return redirect(url_for('admin_recipes'))
+
+    recipes_coll = mongo.db.recipes
+    selected_recipe = recipes_coll.find_one({"_id": oid})
+
+    if not selected_recipe:
+        flash("Recipe not found.", "error")
+        return redirect(url_for('admin_recipes'))
+
+    form = Add_RecipeForm() # Form này sẽ được dùng để render cấu trúc, dữ liệu lấy từ selected_recipe
+
+    # Lấy dữ liệu cho dropdowns
+    diet_types = mongo.db.diets.find()
+    meal_types = mongo.db.meals.find()
+    cuisine_types = mongo.db.cuisines.find()
+
+    return render_template('admin_edit_recipe.html', # Template mới
+                           selected_recipe=selected_recipe,
+                           form=form, # Truyền form để render cấu trúc nếu cần
+                           cuisine_types=cuisine_types,
+                           diet_types=diet_types,
+                           meal_types=meal_types,
+                           title='Admin - Edit Recipe')
+
+# --- Admin Update Recipe (Handle Submission) ---
+@app.route("/admin/update_recipe/<recipe_id>", methods=["POST"])
+@admin_required
+def admin_update_recipe(recipe_id):
+    '''
+    ADMIN UPDATE (Action).
+    Updates the selected recipe in the database based on admin's submission.
+    Does NOT change the original author.
+    '''
+    try:
+        oid = ObjectId(recipe_id)
+    except Exception:
+        flash("Invalid Recipe ID format.", "danger")
+        return redirect(url_for('admin_recipes'))
+
+    recipes_coll = mongo.db.recipes
+    selected_recipe = recipes_coll.find_one({"_id": oid})
+
+    if not selected_recipe:
+         flash("Recipe not found!", "error")
+         return redirect(url_for('admin_recipes'))
+
+    # Lấy ID tác giả gốc (KHÔNG THAY ĐỔI)
+    original_author_id = selected_recipe.get("author")
+
+    # Tách ingredients và directions
+    ingredients = request.form.get("ingredients", "").splitlines()
+    directions = request.form.get("recipe_directions", "").splitlines() # Sửa key name nếu cần khớp với form
+
+    if request.method == "POST":
+        update_data = {
+            "$set": {
+                "recipe_name": request.form.get("recipe_name", "").strip(),
+                "description": request.form.get("recipe_description", ""),
+                "cuisine_type": request.form.get("cuisine_type"),
+                "meal_type": request.form.get("meal_type"),
+                "diet_type": request.form.get("diet_type"),
+                "cooking_time": request.form.get("cooking_time"),
+                "servings": request.form.get("servings"),
+                "ingredients": [ing for ing in ingredients if ing.strip()],
+                "directions": [direc for direc in directions if direc.strip()],
+                'author': original_author_id, # Giữ nguyên tác giả gốc
+                "image": request.form.get("image") # Sửa key name nếu cần khớp với form edit
+                # Lưu ý: Key name cho image trong form edit_recipe.html là "recipe_image"
+                # "image": request.form.get("recipe_image") # <- Sử dụng key này nếu form là admin_edit_recipe.html copy từ edit_recipe.html
+            }
+        }
+
+        try:
+             recipes_coll.update_one({"_id": oid}, update_data)
+             flash('Recipe updated successfully by admin.', 'success')
+             return redirect(url_for("single_recipe_details", recipe_id=recipe_id))
+             # Hoặc: return redirect(url_for('admin_recipes'))
+        except Exception as e:
+             flash(f"Error updating recipe: {e}", 'danger')
+              # Render lại form edit với lỗi
+             # Cần lấy lại dropdown data nếu render lại template
+             diet_types = mongo.db.diets.find()
+             meal_types = mongo.db.meals.find()
+             cuisine_types = mongo.db.cuisines.find()
+             form = Add_RecipeForm() # Có thể cần truyền lại request.form vào form để giữ giá trị nhập
+             return render_template('admin_edit_recipe.html',
+                                    selected_recipe=request.form, # Truyền dữ liệu form lỗi
+                                    recipe_id=recipe_id, # Cần ID để form action đúng
+                                    form=form,
+                                    cuisine_types=cuisine_types,
+                                    diet_types=diet_types,
+                                    meal_types=meal_types,
+                                    title='Admin - Edit Recipe')
+
+    # Nếu không phải POST
+    return redirect(url_for('admin_edit_recipe_form', recipe_id=recipe_id))
+
+
+# --- Admin Delete Recipe ---
+@app.route("/admin/delete_recipe/<recipe_id>") # Thường dùng GET cho link xóa với confirm JS
+@admin_required
+def admin_delete_recipe(recipe_id):
+    '''
+    ADMIN DELETE.
+    Removes the selected recipe from the database.
+    Also removes the recipe ID from the original author's user_recipes list.
+    '''
+    try:
+        oid = ObjectId(recipe_id)
+    except Exception:
+        flash("Invalid Recipe ID format.", "danger")
+        return redirect(url_for('admin_recipes'))
+
+    recipes_coll = mongo.db.recipes
+    users_coll = mongo.db.users
+
+    # Tìm công thức để lấy ID tác giả gốc
+    recipe_to_delete = recipes_coll.find_one({"_id": oid})
+
+    if not recipe_to_delete:
+        flash("Recipe not found!", "error")
+        return redirect(url_for('admin_recipes'))
+
+    original_author_id = recipe_to_delete.get("author")
+
+    try:
+        # Xóa công thức khỏi collection 'recipes'
+        delete_result = recipes_coll.delete_one({"_id": oid})
+
+        if delete_result.deleted_count == 1:
+            # Nếu xóa thành công, xóa ID công thức khỏi danh sách của tác giả gốc
+            if original_author_id:
+                 # Đảm bảo original_author_id là ObjectId nếu nó chưa phải
+                 if not isinstance(original_author_id, ObjectId):
+                     try:
+                         original_author_id = ObjectId(original_author_id)
+                     except Exception:
+                          flash("Invalid author ID format associated with the recipe. Recipe deleted, but couldn't update author list.", "warning")
+                          original_author_id = None # Đặt lại để bỏ qua bước update
+
+                 if original_author_id:
+                     users_coll.update_one(
+                         {"_id": original_author_id},
+                         {"$pull": {"user_recipes": oid}}
+                     )
+            flash('Recipe deleted successfully by admin.', 'success')
+        else:
+            flash('Recipe could not be deleted.', 'warning')
+
+    except Exception as e:
+         flash(f"Error deleting recipe: {e}", 'danger')
+
+    return redirect(url_for("admin_recipes"))
+
+
+
+
+
 '''
 GOOGLE AUTHENTICATION
 '''
-'''
-GOOGLE AUTHENTICATION
-'''
+
 @app.route('/google/login')
 def google_login():
     """Chuyển hướng người dùng đến trang đăng nhập Google."""

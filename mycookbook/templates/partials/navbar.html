@@ -1,4 +1,3 @@
-<!--account dropdown structure, for desktop-->
 <ul id="account" class="dropdown-content center-align">
   <li>
     <a href="{{ url_for('my_recipes', username = session.username) }}">
@@ -29,7 +28,6 @@
         alt="My CookBook Logo"
       />
     </a>
-    <!--The burger-icon button to get the navbar opened in mobile/tablet devices-->
     <a href="#" data-target="mobile-demo" class="sidenav-trigger">
       <i class="fas fa-bars navbar-icon"></i>
     </a>
@@ -66,7 +64,21 @@
           Logout
         </a>
       </li>
-      {% else %}
+      {# Admin Links for Desktop #} {% if is_admin %} {# Sử dụng biến is_admin
+      từ context processor #}
+      <li>
+        <a href="{{ url_for('admin_users') }}" class="uppercase">
+          <i class="fas fa-users-cog navbar-icon" aria-hidden="true"></i>
+          Manage Users
+        </a>
+      </li>
+      <li>
+        <a href="{{ url_for('admin_recipes') }}" class="uppercase">
+          <i class="fas fa-book-open navbar-icon" aria-hidden="true"></i> {#
+          Icon ví dụ #} Manage Recipes
+        </a>
+      </li>
+      {% endif %} {% else %} {# User not logged in #}
       <li>
         <a href="{{url_for('login')}}" class="uppercase">
           <i class="fas fa-sign-in-alt navbar-icon" aria-hidden="true"></i>
@@ -79,12 +91,11 @@
           Register
         </a>
       </li>
-      {% endif %}
+      {% endif %} {# End session.username check #}
     </ul>
   </div>
 </nav>
 
-<!--Navbar for Mobile and Tablet; collapses when the burger icon button clicked-->
 <ul class="sidenav" id="mobile-demo">
   <li>
     <h1 class="center-align mobile-navbar-heading">My CookBook</h1>
@@ -127,13 +138,31 @@
       Settings
     </a>
   </li>
+  {# Admin Links for Mobile - ĐÃ SỬA LỖI TRÙNG LẶP #} {% if is_admin %} {# Sử
+  dụng biến is_admin từ context processor #}
+  <li class="divider"></li>
+  {# Optional divider for admin section #}
+  <li>
+    <a href="{{ url_for('admin_users') }}" class="uppercase">
+      <i class="fas fa-users-cog" aria-hidden="true"></i> {# Bỏ navbar-icon trên
+      mobile #} Manage Users
+    </a>
+  </li>
+  <li>
+    <a href="{{ url_for('admin_recipes') }}" class="uppercase">
+      <i class="fas fa-book-open" aria-hidden="true"></i> {# Icon ví dụ #}
+      Manage Recipes
+    </a>
+  </li>
+  {% endif %} {# Logout always last for logged in user #}
+  <li class="divider"></li>
   <li>
     <a href="{{ url_for('logout') }}" class="uppercase">
       <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
       Logout
     </a>
   </li>
-  {% else %}
+  {% else %} {# User not logged in #}
   <li>
     <a href="{{url_for('login')}}" class="uppercase">
       <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
@@ -146,12 +175,5 @@
       Register
     </a>
   </li>
-  {% endif %}{% if is_admin %} {# Sử dụng biến is_admin từ context processor #}
-  <li>
-    <a href="{{ url_for('admin_users') }}" class="uppercase">
-      <i class="fas fa-users-cog navbar-icon" aria-hidden="true"></i>
-      Manage Users
-    </a>
-  </li>
-  {% endif %}
+  {% endif %} {# End session.username check #}
 </ul>

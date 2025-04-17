@@ -39,16 +39,20 @@
       <div class="row">
         <div class="input-field col s12">
           <i class="material-icons prefix">supervisor_account</i>
-          {{ form.role.label }} {# Pre-select the role. Value passed from
-          form(obj=user) handles this. #} {{ form.role(class="browser-default")
-          }} {# Use browser-default or JS init #} {% if form.role.errors %} {%
-          for error in form.role.errors %}
+          {# Ensure label shows correctly, add 'active' as value is pre-selected
+          #} {{ form.role.label(class="active") }} {# *** Removed
+          class="browser-default" *** #} {{ form.role() }} {% if
+          form.role.errors %} {% for error in form.role.errors %}
           <small class="text-red helper-text">{{ error }}</small>
-          {% endfor %} {% endif %}
+          {% endfor %} {% endif %} {# Materialize often adds its own helper text
+          space, check styling if needed #} {% if not form.role.errors %}
+          <span class="helper-text"></span> {# Placeholder to maintain spacing
+          if needed #} {% endif %}
         </div>
       </div>
 
-      {#
+      {# Commented out password management section - keep as is unless
+      implemented
       <div class="row">
         <div class="col s12">
           <p><strong>Password Management:</strong></p>
@@ -59,14 +63,6 @@
               mechanism.</small
             >
           </p>
-          {# Example: Add a button to trigger a password reset email (requires
-          email setup) #} {#
-          <a
-            href="{{ url_for('admin_reset_password_request', user_id=user._id) }}"
-            class="btn waves-effect waves-light orange"
-            >Send Password Reset Link</a
-          >
-          #}
         </div>
       </div>
       #}
@@ -87,7 +83,8 @@
     </form>
   </div>
 </div>
-{# Initialize Materialize Select if not using browser-default #} {#
+{# No need for inline script if mycookbook.js handles $('select').formSelect();
+#} {#
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     var elems = document.querySelectorAll("select");

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container margin-top-large container-addrecipe z-depth-2">
+    <h1 class="uppercase center-align secondary-heading">Admin - Edit Recipe</h1> {# <--- Sửa tiêu đề #}
+    <form class="add-edit-form" autocomplete="off" method="POST" action="{{ url_for('admin_update_recipe', recipe_id=selected_recipe._id) }}"> {# <--- Sửa action #}
+        {{ form.hidden_tag() }} {# Nếu dùng WTForms #}
+        <div class="row">
+            <div class="input-field col s12">
+                <i class="far fa-file-alt prefix"></i>
+                <input id="recipe_name" name="recipe_name" value="{{ selected_recipe.recipe_name }}"
+                    type="text" minlength="4" maxlength="25"
+                    class="validate" required />
+                <label for="recipe_name" class="active">Recipe Name {# Add active class #}
+                    <i class="fas fa-question-circle tooltipped" data-position="top" data-tooltip="4-25 characters"></i>
+                    <i class="fas fa-asterisk asterisk"></i>
+                </label>
+            </div>
+            <div class="input-field col s12">
+                <i class="fas fa-pen prefix"></i>
+                <textarea
+                    id="recipe_description"
+                    name="recipe_description"
+                    class="validate materialize-textarea"
+                    minlength="20"
+                    maxlength="300"
+                    required
+                >{{ selected_recipe.description }}</textarea>
+                <label for="recipe_description" class="active">Recipe Description {# Add active class #}
+                     <i class="fas fa-question-circle tooltipped" data-position="top" data-tooltip="20-300 characters"></i>
+                     <i class="fas fa-asterisk asterisk"></i>
+                </label>
+            </div>
+            <div class="input-field col s12 m6 l4">
+                <i class="fas fa-globe-europe prefix"></i>
+                <select id="cuisine_type" name="cuisine_type">
+                    {# Đặt giá trị 'None' hoặc '' là selected nếu giá trị hiện tại là None/'' hoặc không có #}
+                    <option value="None" {% if not selected_recipe.cuisine_type or selected_recipe.cuisine_type == "None" %}selected{% endif %}>Select an option (optional)</option>
+                    {% for cuisine in cuisine_types %}
+                        <option value="{{cuisine.cuisine_type}}" {% if cuisine.cuisine_type == selected_recipe.cuisine_type %}selected{% endif %}>{{cuisine.cuisine_type}}</option>
+                    {% endfor %}
+                </select>
+                <label for="cuisine_type">Cuisine</label>
+            </div>
+            <div class="input-field col s12 m6 l4">
+                <i class="fas fa-utensils prefix"></i>
+                <select id="meal_type" name="meal_type" class="validate" required>
+                    <option value="" disabled {% if not selected_recipe.meal_type %}selected{% endif %}>Select an option *</option> {# Thêm dấu * #}
+                    {% for meal in meal_types %}
+                         <option value="{{meal.meal_type}}" {% if meal.meal_type == selected_recipe.meal_type %}selected{% endif %}>{{meal.meal_type}}</option>
+                    {% endfor %}
+                </select>
+                <label for="meal_type">Meal Type <i class="fas fa-asterisk asterisk"></i></label>
+            </div>
+            <div class="input-field col s12 m6 l4">
+                <i class="fas fa-leaf prefix"></i>
+                <select id="diet_type" name="diet_type">
+                     <option value="None" {% if not selected_recipe.diet_type or selected_recipe.diet_type == "None" %}selected{% endif %}>Select an option (optional)</option>
+                    {% for diet in diet_types %}
+                         <option value="{{diet.diet_type}}" {% if diet.diet_type == selected_recipe.diet_type %}selected{% endif %}>{{diet.diet_type}}</option>
+                    {% endfor %}
+                </select>
+                 <label for="diet_type">Diet Type</label>
+            </div>
+             <div class="input-field col s12 m6">
+                <i class="far fa-clock prefix"></i>
+                <input id="cooking_time" name="cooking_time" value="{{ selected_recipe.cooking_time }}" type="number" class="validate" required />
+                <label for="cooking_time" class="active">Cooking time (min) <i class="fas fa-asterisk asterisk"></i></label> {# Add active class #}
+            </div>
+             <div class="input-field col s12 m6">
+                <i class="fas fa-concierge-bell prefix"></i>
+                <input id="servings" name="servings" value="{{ selected_recipe.servings }}" type="number" class="validate" required />
+                <label for="servings" class="active">No. of Servings <i class="fas fa-asterisk asterisk"></i></label> {# Add active class #}
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="input-field col s12">
+                <i class="fas fa-clipboard-list prefix"></i>
+                <textarea
+                    id="ingredients"
+                    name="ingredients"
+                    placeholder="Add each ingredient on a new line"
+                    class="validate materialize-textarea"
+                    required
+                >{%- for ingredient in selected_recipe.ingredients -%}
+{{ ingredient }}{{ "\n" if not loop.last else "" }}
+{%- endfor -%}</textarea> {# Sửa lại vòng lặp để không có dòng trắng cuối #}
+                <label for="ingredients" class="active">Ingredients (each on a new line) {# Add active class #}
+                    <i class="fas fa-asterisk asterisk"></i>
+                </label>
+            </div>
+            <div class="input-field col s12">
+                <i class="fas fa-list-ol prefix"></i>
+                <textarea
+                    id="directions"
+                    name="recipe_directions" {# Đổi name nếu cần khớp route update #}
+                    placeholder=" Add each step on a new line"
+                    class="validate materialize-textarea"
+                    required
+                >{%- for direction in selected_recipe.directions -%}
+{{ direction }}{{ "\n" if not loop.last else "" }}
+{%- endfor -%}</textarea> {# Sửa lại vòng lặp để không có dòng trắng cuối #}
+                <label for="directions" class="active">Directions (each on a new line) {# Add active class #}
+                     <i class="fas fa-asterisk asterisk"></i>
+                </label>
+            </div>
+            <div class="input-field col s12">
+                <i class="far fa-images prefix"></i>
+                <input
+                    id="image" {# Đổi id/name nếu cần khớp route update #}
+                    name="image"
+                    value="{{ selected_recipe.image | default('') }}" {# Thêm default #}
+                    placeholder="Provide URL for your recipe image (optional)"
+                    type="text"
+                    class="validate"
+                />
+                <label for="image" {% if selected_recipe.image %}class="active"{% endif %}>Recipe Image URL {# Add active class conditionally #}
+                    <i class="fas fa-question-circle tooltipped" data-position="top"
+                        data-tooltip="You can upload your image to a free image hosting website (e.g. ImgBB) and paste direct link here">
+                    </i>
+                </label>
+            </div>
+            {# Flash messages cho lỗi validation từ route update #}
+            <div class="row center-align">
+                {% with messages = get_flashed_messages(category_filter=['danger', 'warning']) %}
+                {% if messages %}
+                {% for message in messages %}
+                <small class="text-red helper-text">{{ message }}</small>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+            <div class="row">
+                <div class="col s6 right-align">
+                {# Liên kết Cancel về trang danh sách admin #}
+                <a href="{{ url_for('admin_recipes') }}" class="btn z-depth-2 btn-form btn-secondary waves-effect waves-light btn-main uppercase" name="action">
+                    Cancel
+                </a>
+                </div>
+                <div class="col s6">
+                    <button class="btn z-depth-3 btn-coral btn-form waves-effect waves-light btn-main uppercase" type="submit" name="action">
+                        Update Recipe {# Đổi text nút #}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{# Script để khởi tạo Materialize components nếu cần (đã có trong base.html thường là đủ) #}
+{# <script>
+ M.AutoInit(); // Hoặc khởi tạo từng component cụ thể
+ document.addEventListener('DOMContentLoaded', function() {
+    var elemsSelect = document.querySelectorAll('select');
+    var instancesSelect = M.FormSelect.init(elemsSelect, {});
+    var elemsTooltipped = document.querySelectorAll('.tooltipped');
+    var instancesTooltipped = M.Tooltip.init(elemsTooltipped,{});
+    var elemsTextarea = document.querySelectorAll('.materialize-textarea');
+    M.textareaAutoResize(elemsTextarea); // Tự động resize textarea
+    M.updateTextFields(); // Cập nhật trạng thái active cho label nếu có giá trị
+     M.CharacterCounter.init(document.querySelectorAll('#recipe_name, #recipe_description')); // Nếu dùng character counter
+  });
+</script> #}
+
+{% endblock %}

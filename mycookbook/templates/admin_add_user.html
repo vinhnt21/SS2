@@ -56,14 +56,29 @@
         </div>
       </div>
 
-      <div class="row">
+   <div class="row">
         <div class="input-field col s12">
           <i class="material-icons prefix">supervisor_account</i>
-          {{ form.role.label }} {{ form.role(class="browser-default") }} {# Use
-          browser-default for better styling control or initialize with JS #} {%
-          if form.role.errors %} {% for error in form.role.errors %}
-          <small class="text-red helper-text">{{ error }}</small>
-          {% endfor %} {% endif %}
+          {# --- START: Manual Select Rendering --- #}
+          <select name="{{ form.role.name }}" id="{{ form.role.id }}" required>
+              {# Add a disabled default option - often helps Materialize #}
+              {# <option value="" disabled selected>Choose role</option> #}
+
+              {# Render options, explicitly setting 'selected' for 'user' #}
+              {% for value, label in form.role.choices %}
+                  <option value="{{ value }}" {% if value == 'user' %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+          </select>
+          {# Render the label separately #}
+          <label for="{{ form.role.id }}">{{ form.role.label.text }}</label>
+          {# --- END: Manual Select Rendering --- #}
+
+          {% if form.role.errors %}
+            {% for error in form.role.errors %}
+              {# Ensure error messages are displayed below the select #}
+              <small class="text-red helper-text" style="display: block; position: relative; top: -10px;">{{ error }}</small>
+            {% endfor %}
+          {% endif %}
         </div>
       </div>
 
@@ -83,11 +98,15 @@
     </form>
   </div>
 </div>
-{# Initialize Materialize Select if not using browser-default #} {#
+
+{# *** ADD THIS SCRIPT BLOCK BACK AT THE END OF THE FILE *** #}
 <script>
   document.addEventListener("DOMContentLoaded", function () {
+    // Initialize Materialize selects specifically on this page
     var elems = document.querySelectorAll("select");
     var instances = M.FormSelect.init(elems, {});
+    console.log("Materialize Select Initialized on Admin Add User Page"); // For debugging
   });
 </script>
-#} {% endblock %}
+
+{% endblock %}

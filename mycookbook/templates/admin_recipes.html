@@ -1,0 +1,154 @@
+{% extends 'base.html' %} {% block content %}
+<div class="container margin-top-large">
+  <h1 class="secondary-heading uppercase center-align">
+    Admin - Manage Recipes
+  </h1>
+  <p class="center-align paragraph-count">
+    Total Recipes: {{ number_of_all_rec }}
+  </p>
+  {# Using existing style #} {% include "partials/toast_messages.html" %}
+
+  <div class="row margin-bottom-large">
+    <div class="col s12 center-align">
+      <a
+        href="{{ url_for('admin_add_recipe_form') }}"
+        class="btn waves-effect waves-light btn-coral"
+      >
+        {# Use existing button style #}
+        <i class="material-icons left">add</i>Add New Recipe
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    {% if recipes %} {% for recipe in recipes %}
+    <div class="col s12 m6 l4">
+      {# Adjust column size if needed, l3 might fit more cards #}
+      <div class="card hoverable card-recipe">
+        {# Reuse card style #}
+        <div class="card-image">
+          <a
+            href="{{ url_for('single_recipe_details', recipe_id=recipe._id) }}"
+          >
+            {% if recipe.image %}
+            <img
+              src="{{ recipe.image }}"
+              class="responsive-img recipe-image"
+              alt="Recipe Image {{ recipe.recipe_name }}"
+            />
+            {# Added recipe-image class #} {% else %}
+            <img
+              src="{{ url_for('static', filename='img/recipe_placeholder.jpg') }}"
+              class="responsive-img recipe-image"
+              alt="No recipe image available"
+            />
+            {# Added recipe-image class #} {% endif %}
+          </a>
+          {% if recipe.cuisine_type and recipe.cuisine_type != "None" %}
+          <div class="text-block">
+            <p>{{ recipe.cuisine_type }}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="card-content">
+          <h5>
+            <a
+              href="{{ url_for('single_recipe_details', recipe_id=recipe._id) }}"
+              class="card-title"
+              >{{ recipe.recipe_name }}</a
+            >
+          </h5>
+          <p>
+            <small
+              >Author: {{ recipe.author_username | default('Unknown') }}</small
+            >
+          </p>
+          {# Display author #}
+          <div class="divider"></div>
+          <div class="row card-bottom-info">
+            <div class="col s6 uppercase card_meal_heading">
+              {{ recipe.meal_type | default ('N/A') }}
+            </div>
+            <div class="col s6 right-align">
+              <span title="Cooking time">
+                <i class="far fa-clock icon-recipe-card" aria-hidden="true"></i>
+                {{ recipe.cooking_time | default('?') }} min
+              </span>
+              <span title="Servings">
+                <i class="fas fa-user icon-recipe-card" aria-hidden="true"></i>
+                {{ recipe.servings | default('?') }}
+              </span>
+            </div>
+          </div>
+          {# Admin Action Buttons - Added margin for spacing #}
+          <div class="card-action center-align" style="padding-top: 15px">
+            <a
+              href="{{ url_for('admin_edit_recipe_form', recipe_id=recipe._id) }}"
+              class="btn-small waves-effect waves-light btn-green tooltipped"
+              data-position="top"
+              data-tooltip="Edit Recipe"
+              style="margin-right: 5px"
+            >
+              <i class="fas fa-edit"></i>
+            </a>
+            {# Add confirmation dialog for delete #}
+            <a
+              href="{{ url_for('admin_delete_recipe', recipe_id=recipe._id) }}"
+              onclick="return confirm('Are you sure you want to delete the recipe \'{{ recipe.recipe_name }}\'? This cannot be undone.');"
+              class="btn-small btn-red waves-effect waves-light tooltipped"
+              data-position="top"
+              data-tooltip="Delete Recipe"
+              style="margin-left: 5px"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %} {% else %}
+    <div class="col s12 center-align">
+      <p>No recipes found in the database.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if pages and pages|length > 1 %} {# Check if pages exists and has more than
+  one element #}
+  <ul class="pagination center-align margin-bottom-large">
+    {# Previous Page Link #} {% if current_page > 1 %}
+    <li class="waves-effect">
+      <a href="{{ url_for('admin_recipes', current_page=current_page-1) }}"
+        ><i class="material-icons">chevron_left</i></a
+      >
+    </li>
+    {% else %}
+    <li class="disabled">
+      <a href="#!"><i class="material-icons">chevron_left</i></a>
+    </li>
+    {% endif %} {# Page Number Links #} {% for page_num in pages %} {% if
+    page_num == current_page %}
+    <li class="active btn-coral"><a>{{ page_num }}</a></li>
+    {# Use your primary color class #} {% else %}
+    <li class="waves-effect">
+      <a href="{{ url_for('admin_recipes', current_page=page_num) }}"
+        >{{ page_num }}</a
+      >
+    </li>
+    {% endif %} {% endfor %} {# Next Page Link #} {% if current_page <
+    pages|length %}
+    <li class="waves-effect">
+      <a href="{{ url_for('admin_recipes', current_page=current_page+1) }}"
+        ><i class="material-icons">chevron_right</i></a
+      >
+    </li>
+    {% else %}
+    <li class="disabled">
+      <a href="#!"><i class="material-icons">chevron_right</i></a>
+    </li>
+    {% endif %}
+  </ul>
+  {% endif %} {# End pagination check #}
+</div>
+{% endblock %}
